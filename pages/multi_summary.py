@@ -76,7 +76,7 @@ else:
 
                         # 文字起こしを取得
                         try:
-                            transcript = YouTubeTranscriptApi.get_transcript(video_id, languages=["ja", "en"])
+                            transcript = YouTubeTranscriptApi.get_transcript(video_id, languages=['ja'])
                             transcript_text = " ".join([x["text"] for x in transcript])
                         except NoTranscriptFound:
                             st.warning(f"動画 {idx}: 利用可能な文字起こしが見つかりません。スキップします。")
