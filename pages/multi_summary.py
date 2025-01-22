@@ -68,7 +68,7 @@ else:
                             transcript = YouTubeTranscriptApi.get_transcript(video_id, languages=["ja", "en"])
                             transcript_text = " ".join([x["text"] for x in transcript])
                         except NoTranscriptFound:
-                            st.error(f"動画 {idx}: 利用可能な文字起こしが見つかりません。")
+                            st.warning(f"動画 {idx}: 利用可能な文字起こしが見つかりません。スキップします。")
                             continue
 
                         # プロンプトファイルを読み込む
@@ -120,21 +120,28 @@ else:
                             mime="text/plain",
                         )
 
-                        # メール送信（オプション）
+                        # メール送信部分の修正
                         if yag:
                             try:
+                                # Markdown と文字起こしファイルの内容を一時ファイルに保存
+                                markdown_file = io.StringIO(summary)  # Markdown データ
+                                transcript_file = io.StringIO(transcript_text)  # 文字起こしデータ
+
+                                # メールの件名
                                 subject = f"動画 {idx} の要約: {title}"
+
+                                # メール送信
                                 yag.send(
                                     to=email,
                                     subject=subject,
                                     contents=[
                                         summary,
-                                        f"文字起こしデータを添付しました。",
+                                        "文字起こしデータを添付しました。",
                                     ],
-                                    attachments={
-                                        markdown_file_name: markdown_data.getvalue(),
-                                        transcript_file_name: transcript_data.getvalue(),
-                                    },
+                                    attachments=[
+                                        ("{}.md".format(title), markdown_file.getvalue()),  # Markdown ファイルの添付
+                                        ("{}.txt".format(title), transcript_file.getvalue()),  # 文字起こしファイルの添付
+                                    ],
                                 )
                                 st.success(f"動画 {idx} の要約と文字起こしデータをメール送信しました！件名: {subject}")
                             except Exception as e:
