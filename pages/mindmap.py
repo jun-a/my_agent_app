@@ -24,16 +24,23 @@ client = OpenAI(api_key=st.secrets["openai_api_key"])
 
 st.title("文字起こしデータからマインドマップを生成")
 
+# セッション状態を初期化
+if "transcript_text" not in st.session_state:
+    st.session_state.transcript_text = ""
+
+if "full_mindmap_data" not in st.session_state:
+    st.session_state.full_mindmap_data = ""
+
 # ファイルアップロード
 uploaded_file = st.file_uploader("文字起こしデータをアップロード（.txt）", type="txt")
 
 if uploaded_file is not None:
     try:
         # アップロードされたファイルをテキストとして読み取る
-        transcript_text = uploaded_file.read().decode("utf-8")
+        st.session_state.transcript_text = uploaded_file.read().decode("utf-8")
 
         st.write("アップロードされた文字起こしデータ:")
-        st.text_area("内容", transcript_text, height=200)
+        st.text_area("内容", st.session_state.transcript_text, height=200)
 
         # プロンプトを外部ファイルから読み込む
         try:
@@ -45,7 +52,7 @@ if uploaded_file is not None:
 
         # トークン制限を考慮して文字起こしデータを分割
         chunk_size = 2000  # 各チャンクの文字数
-        transcript_chunks = textwrap.wrap(transcript_text, chunk_size)
+        transcript_chunks = textwrap.wrap(st.session_state.transcript_text, chunk_size)
 
         # 各チャンクの要約を生成
         summaries = []
@@ -66,32 +73,34 @@ if uploaded_file is not None:
                 st.stop()
 
         # すべての部分要約を統合
-        full_mindmap_data = "- テーマ: 文字起こしのマインドマップ\n"
-        full_mindmap_data += "\n".join([f"    {summary}" for summary in summaries])
+        st.session_state.full_mindmap_data = "- テーマ: 文字起こしのマインドマップ\n"
+        st.session_state.full_mindmap_data += "\n".join([f"    {summary}" for summary in summaries])
 
-        # マインドマップを表示
-        st.write("### マインドマップの構造")
-        st.text_area("マインドマップ", full_mindmap_data, height=300)
-
-        st.write("### マインドマップの可視化")
-        markmap(full_mindmap_data)
-
-        # マインドマップをダウンロードするボタン
-        markdown_file_name = "mindmap.md"
-        st.download_button(
-            label="マインドマップをダウンロード（Markdown形式）",
-            data=full_mindmap_data,
-            file_name=markdown_file_name,
-            mime="text/markdown",
-        )
-
-        # 文字起こしデータをテキストファイルとしてダウンロード
-        transcript_file_name = "transcript.txt"
-        st.download_button(
-            label="文字起こしをダウンロード（テキスト形式）",
-            data=transcript_text,
-            file_name=transcript_file_name,
-            mime="text/plain",
-        )
     except Exception as e:
         st.error(f"予期しないエラーが発生しました: {e}")
+
+# マインドマップの表示
+if st.session_state.full_mindmap_data:
+    st.write("### マインドマップの構造")
+    st.text_area("マインドマップ", st.session_state.full_mindmap_data, height=300)
+
+    st.write("### マインドマップの可視化")
+    markmap(st.session_state.full_mindmap_data)
+
+    # マインドマップをダウンロードするボタン
+    markdown_file_name = "mindmap.md"
+    st.download_button(
+        label="マインドマップをダウンロード（Markdown形式）",
+        data=st.session_state.full_mindmap_data,
+        file_name=markdown_file_name,
+        mime="text/markdown",
+    )
+
+    # 文字起こしデータをテキストファイルとしてダウンロード
+    transcript_file_name = "transcript.txt"
+    st.download_button(
+        label="文字起こしをダウンロード（テキスト形式）",
+        data=st.session_state.transcript_text,
+        file_name=transcript_file_name,
+        mime="text/plain",
+    )

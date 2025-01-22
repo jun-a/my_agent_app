@@ -41,15 +41,13 @@ def check_authentication():
         return
 
     # クッキーを確認
-    if "auth_token" in cookies and "auth_expiry" in cookies:
-        try:
-            expiry_time = int(cookies.get("auth_expiry", "0"))  # デフォルト値を"0"に設定
+    if "auth_token" in cookies:
+        expiry_time_str = cookies.get("auth_expiry", "0")  # デフォルト値を文字列"0"に設定
+        if expiry_time_str and expiry_time_str.isdigit():  # 値がNoneまたは空文字でないか確認
+            expiry_time = int(expiry_time_str)
             if time.time() < expiry_time:
                 st.session_state.authenticated = True
                 return
-        except ValueError:
-            st.warning("クッキーの有効期限が不正です。再ログインしてください。")
-            st.session_state.authenticated = False
 
     # ログインフォームを表示
     if not authenticate():

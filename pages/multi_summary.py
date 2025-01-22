@@ -2,6 +2,8 @@ import streamlit as st
 from youtube_transcript_api import YouTubeTranscriptApi, NoTranscriptFound
 from openai import OpenAI
 import io
+import tempfile
+import os
 import yagmail
 
 # ページ設定
@@ -34,6 +36,13 @@ urls = st.text_area(
 ).strip().split("\n")
 urls = [url.strip() for url in urls if url.strip()]  # 空行を削除
 
+# セッション状態を初期化
+if "all_summaries" not in st.session_state:
+    st.session_state.all_summaries = []
+
+if "full_summary" not in st.session_state:
+    st.session_state.full_summary = ""
+
 # 入力された URL の数を確認
 if len(urls) > 10:
     st.error("最大10件までの URL を入力してください。")
@@ -45,7 +54,6 @@ else:
             st.error("URL が入力されていません。")
         else:
             try:
-                all_summaries = []
                 yag = None
 
                 # メール送信用に yagmail を設定（メールアドレスが入力されている場合）
@@ -84,13 +92,14 @@ else:
                             st.stop()
 
                         # 要約を生成
-                        response = client.chat.completions.create(model=st.secrets["openai_model"],
-                        messages=[
-                            {"role": "system", "content": "あなたは動画の文字起こしを要約するアシスタントです。"},
-                            {"role": "user", "content": prompt},
-                        ],
-                        max_tokens=3000,
-                        temperature=0.5)
+                        response = client.chat.completions.create(
+                            model=st.secrets["openai_model"],
+                            messages=[
+                                {"role": "system", "content": "あなたは動画の文字起こしを要約するアシスタントです。"},
+                                {"role": "user", "content": prompt},
+                            ],
+                            max_tokens=3000,
+                            temperature=0.5)
                         summary = response.choices[0].message.content
 
                         # 要約のタイトルを抽出
@@ -126,9 +135,13 @@ else:
                         # メール送信部分の修正
                         if yag:
                             try:
-                                # Markdown と文字起こしファイルの内容を一時ファイルに保存
-                                markdown_file = io.StringIO(summary)  # Markdown データ
-                                transcript_file = io.StringIO(transcript_text)  # 文字起こしデータ
+                                with tempfile.NamedTemporaryFile(delete=False) as markdown_temp:
+                                    markdown_temp.write(markdown_data.getvalue().encode("utf-8"))
+                                    markdown_temp_path = markdown_temp.name
+
+                                with tempfile.NamedTemporaryFile(delete=False) as transcript_temp:
+                                    transcript_temp.write(transcript_data.getvalue().encode("utf-8"))
+                                    transcript_temp_path = transcript_temp.name
 
                                 # メールの件名
                                 subject = f"動画 {idx} の要約: {title}"
@@ -141,33 +154,39 @@ else:
                                         summary,
                                         "文字起こしデータを添付しました。",
                                     ],
-                                    attachments=[
-                                        ("{}.md".format(title), markdown_file.getvalue()),  # Markdown ファイルの添付
-                                        ("{}.txt".format(title), transcript_file.getvalue()),  # 文字起こしファイルの添付
-                                    ],
+                                    attachments=[markdown_temp_path, transcript_temp_path]
                                 )
                                 st.success(f"動画 {idx} の要約と文字起こしデータをメール送信しました！件名: {subject}")
+
+                                # 一時ファイルを削除
+                                os.unlink(markdown_temp_path)
+                                os.unlink(transcript_temp_path)
+
                             except Exception as e:
                                 st.error(f"動画 {idx} のメール送信中にエラーが発生しました: {e}")
 
                         # 全体の要約に追加
-                        all_summaries.append(f"### 動画 {idx}: {title}\n{summary}")
+                        st.session_state.all_summaries.append(f"### 動画 {idx}: {title}\n{summary}")
 
                     except Exception as e:
                         st.error(f"動画 {idx} の処理中にエラーが発生しました: {e}")
 
-                # 全体の要約を表示
-                if all_summaries:
-                    full_summary = "\n\n".join(all_summaries)
-                    st.write("### 全体の要約")
-                    st.text_area("全体の要約", full_summary, height=300)
+                # 全体の要約をセッションに保存
+                if st.session_state.all_summaries:
+                    st.session_state.full_summary = "\n\n".join(st.session_state.all_summaries)
 
-                    # 全体の要約をダウンロード
-                    st.download_button(
-                        label="全体の要約をダウンロード（テキスト形式）",
-                        data=full_summary,
-                        file_name="all_summaries.txt",
-                        mime="text/plain",
-                    )
             except Exception as e:
                 st.error(f"エラーが発生しました: {e}")
+
+        # 全体の要約を表示
+        if st.session_state.full_summary:
+            st.write("### 全体の要約")
+            st.text_area("全体の要約", st.session_state.full_summary, height=300)
+
+            # 全体の要約をダウンロード
+            st.download_button(
+                label="全体の要約をダウンロード（テキスト形式）",
+                data=st.session_state.full_summary,
+                file_name="all_summaries.txt",
+                mime="text/plain",
+            )
