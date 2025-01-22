@@ -50,7 +50,7 @@ if st.button("実行"):
 
         # 2. 日本語または英語の文字起こしを取得
         try:
-            transcript = YouTubeTranscriptApi.get_transcript(video_id, languages=['ja'])
+            transcript = YouTubeTranscriptApi.get_transcript(video_id, languages=['en','ja'])
             st.session_state.transcript_text = " ".join([x["text"] for x in transcript])
         except NoTranscriptFound:
             st.error("指定された動画には字幕が無効です。別の動画を選択してください。")
