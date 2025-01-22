@@ -1,6 +1,5 @@
 import streamlit as st
 from openai import OpenAI
-from utils.auth import check_authentication
 
 # ページ設定を最初に記述
 st.set_page_config(
@@ -10,8 +9,13 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+from utils.auth import check_authentication, show_logout_button
+
 # 認証チェック
 check_authentication()
+
+# サイドバーにログアウトボタンを表示
+show_logout_button()
 
 # OpenAI APIのキー設定
 client = OpenAI(api_key=st.secrets["openai_api_key"])

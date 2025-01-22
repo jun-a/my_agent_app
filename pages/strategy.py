@@ -2,6 +2,22 @@ import streamlit as st
 from openai import OpenAI
 from streamlit_markmap import markmap
 
+# ページ設定を最初に記述
+st.set_page_config(
+    page_title="戦略立案アプリ",
+    page_icon="✨",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
+
+from utils.auth import check_authentication, show_logout_button
+
+# 認証チェック
+check_authentication()
+
+# サイドバーにログアウトボタンを表示
+show_logout_button()
+
 # OpenAI APIキーを設定
 client = OpenAI(api_key=st.secrets["openai_api_key"])
 

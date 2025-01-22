@@ -3,9 +3,6 @@ from streamlit_markmap import markmap
 from openai import OpenAI
 import io
 import textwrap
-from utils.auth import check_authentication
-
-client = OpenAI(api_key=st.secrets["openai_api_key"])
 
 # ページ設定
 st.set_page_config(
@@ -14,10 +11,16 @@ st.set_page_config(
     layout="wide",
 )
 
+from utils.auth import check_authentication, show_logout_button
+
 # 認証チェック
 check_authentication()
 
+# サイドバーにログアウトボタンを表示
+show_logout_button()
+
 # OpenAI API キーの設定
+client = OpenAI(api_key=st.secrets["openai_api_key"])
 
 st.title("文字起こしデータからマインドマップを生成")
 
