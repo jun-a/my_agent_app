@@ -43,9 +43,17 @@ email = st.text_input("要約を送信するメールアドレス（任意）:")
 
 if st.button("実行"):
     try:
-        # 1. YouTube の動画 ID を抽出
-        video_id = video_url.split("v=")[-1]
-        if not video_id or "&" in video_id:
+        # URL に v= が含まれているかを確認し、含まれていない場合はエラー
+        if "v=" not in video_url:
+            raise ValueError("有効な YouTube 動画の URL を入力してください。")
+
+        # 1. "v=" で分割して後ろの部分を取得
+        video_id_part = video_url.split("v=")[1]
+
+        # 2. "&" がある場合は分割して先頭の要素を取り出す
+        video_id = video_id_part.split("&")[0]
+
+        if not video_id:
             raise ValueError("有効な YouTube 動画の URL を入力してください。")
 
         # 2. 日本語または英語の文字起こしを取得

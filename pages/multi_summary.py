@@ -69,10 +69,18 @@ else:
                     try:
                         st.write(f"### 動画 {idx}: {video_url}")
 
-                        # YouTube の動画 ID を抽出
-                        video_id = video_url.split("v=")[-1]
+                        # URL に v= が含まれているかを確認し、含まれていない場合はエラー
+                        if "v=" not in video_url:
+                            raise ValueError("有効な YouTube 動画の URL を入力してください。")
+
+                        # 1. "v=" で分割して後ろの部分を取得
+                        video_id_part = video_url.split("v=")[1]
+
+                        # 2. "&" がある場合は分割して先頭の要素を取り出す
+                        video_id = video_id_part.split("&")[0]
+
                         if not video_id:
-                            raise ValueError("有効な動画 URL ではありません。")
+                            raise ValueError("有効な YouTube 動画の URL を入力してください。")
 
                         # 文字起こしを取得
                         try:
