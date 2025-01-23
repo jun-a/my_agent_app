@@ -4,3 +4,4 @@ youtube-transcript-api
 yagmail
 streamlit_markmap
 streamlit-cookies-manager
+pdfplumber
