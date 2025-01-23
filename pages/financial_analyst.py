@@ -37,7 +37,7 @@ def download_and_save_pdf_temporarily(url: str) -> str:
     session.mount("https://", HTTPAdapter(max_retries=retries))
 
     headers = {
-        "User-Agent": "Mozilla/5.0 (compatible; MyBot/1.0; +http://example.com/bot)"
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
     }
 
     response = session.get(url, headers=headers, timeout=30, stream=True)
