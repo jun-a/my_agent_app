@@ -1,13 +1,17 @@
-import streamlit as st
 from openai import OpenAI
+import streamlit as st
 
 # ページ設定を最初に記述
 st.set_page_config(
-    page_title="GPTチャットアプリ",
+    page_title="チャット",
     page_icon="✨",
     layout="wide",
     initial_sidebar_state="expanded",
 )
+
+# アプリのタイトルと説明
+st.title("💬 Chatbot")
+st.caption("🚀 A Streamlit chatbot powered by OpenAI")
 
 from utils.auth import check_authentication, show_logout_button
 
@@ -17,52 +21,40 @@ check_authentication()
 # サイドバーにログアウトボタンを表示
 show_logout_button()
 
-# OpenAI APIのキー設定
-client = OpenAI(api_key=st.secrets["openai_api_key"])
+# OpenAI APIキーとモデルを設定
+api_key = st.secrets["openai_api_key"]
+model_name = st.secrets["openai_model"]
 
-
-# 会話履歴を保存するためのセッションステートを初期化
+# メッセージ履歴の初期化
 if "messages" not in st.session_state:
-    st.session_state["messages"] = [
-        {"role": "system", "content": "You are a helpful assistant."}
-    ]
+    st.session_state["messages"] = [{"role": "assistant", "content": "お手伝いできることはありますか?"}]
 
-st.title("GPTチャット")
+# チャット履歴の表示
+st.write("---")  # 見た目を区切るライン
+for msg in st.session_state.messages:
+    with st.chat_message(msg["role"]):  # メッセージの役割に応じたUI
+        st.write(msg["content"])
 
-# 質問の入力フォーム
-question = st.text_input("質問を入力してください:")
+# ユーザー入力欄を表示
+if prompt := st.chat_input("GPTにメッセージを送信する"):
+    # ユーザーのメッセージを履歴に追加
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    with st.chat_message("user"):
+        st.write(prompt)
 
-if st.button("送信"):
-    if question:
-        try:
-            # ユーザーの質問を履歴に追加
-            st.session_state["messages"].append({"role": "user", "content": question})
+    # OpenAI APIを呼び出して応答を取得
+    try:
+        client = OpenAI(api_key=api_key)
+        response = client.chat.completions.create(
+            model=model_name,
+            messages=st.session_state.messages,
+        )
+        bot_message = response.choices[0].message.content
 
-            # ChatCompletion API を使用
-            response = client.chat.completions.create(model=st.secrets["openai_model"],
-            messages=st.session_state["messages"],
-            max_tokens=2000,
-            temperature=0.7)
-
-            # AIの応答を履歴に追加
-            answer = response.choices[0].message.content
-            st.session_state["messages"].append({"role": "assistant", "content": answer})
-
-            # 応答を表示
-            st.write("### 回答")
-            st.write(answer)
-
-        except Exception as e:
-            st.error(f"エラーが発生しました: {e}")
-    else:
-        st.warning("質問を入力してください。")
-
-# 会話履歴を表示
-if st.session_state["messages"]:
-    st.write("---")
-    st.write("### 会話履歴")
-    for msg in st.session_state["messages"]:
-        if msg["role"] == "user":
-            st.write(f"**ユーザー**: {msg['content']}")
-        elif msg["role"] == "assistant":
-            st.write(f"**AI**: {msg['content']}")
+        # アシスタントの応答を履歴に追加
+        st.session_state.messages.append({"role": "assistant", "content": bot_message})
+        with st.chat_message("assistant"):
+            st.write(bot_message)
+    except Exception as e:
+        # エラーが発生した場合は表示
+        st.error(f"An error occurred: {e}")
