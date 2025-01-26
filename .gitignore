@@ -2,3 +2,4 @@
 .venv/
 *.pyc
 .devcontainer
+.DS_Store
