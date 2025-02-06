@@ -6,3 +6,5 @@ streamlit_markmap
 streamlit-cookies-manager
 pdfplumber
 gtts
+bs4
+markdown

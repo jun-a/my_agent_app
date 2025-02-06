@@ -6,6 +6,8 @@ import tempfile
 import os
 import yagmail
 from gtts import gTTS
+import markdown
+from bs4 import BeautifulSoup
 
 # ページ設定
 st.set_page_config(
@@ -130,8 +132,13 @@ if st.session_state.summary:
         mime="text/plain",
     )
 
+    # Markdownをプレーンテキストに変換
+    html = markdown.markdown(st.session_state.summary)
+    soup = BeautifulSoup(html, "html.parser")
+    plain_text_summary = soup.get_text()
+
     # 音声で読み上げる機能を追加
-    tts = gTTS(st.session_state.summary, lang='ja')
+    tts = gTTS(plain_text_summary, lang='ja')
     tts.save("summary.mp3")
 
     audio_file = open("summary.mp3", "rb")
