@@ -3,6 +3,10 @@ import requests
 import streamlit as st
 from openai import OpenAI
 from requests.adapters import HTTPAdapter, Retry
+from bs4 import BeautifulSoup
+from gtts import gTTS
+import io
+import markdown
 
 # ページ設定
 st.set_page_config(
@@ -40,7 +44,14 @@ def fetch_web_content(url: str) -> str:
 
     response = session.get(url, headers=headers, timeout=30)
     response.raise_for_status()
-    return response.text
+
+    # HTMLを解析
+    soup = BeautifulSoup(response.content, 'html.parser')
+    
+    # body部分を抽出
+    body_content = soup.body
+
+    return body_content.get_text() if body_content else "Body content not found"
 
 def chunk_text(text: str, max_chars: int = 3000):
     chunks = []
@@ -110,12 +121,26 @@ def main():
         st.subheader("要約結果")
         st.write(st.session_state["summary_output"])
 
-        # テキストファイルとしてダウンロード
+        # Markdownをプレーンテキストに変換
+        html = markdown.markdown(st.session_state["summary_output"])
+        soup = BeautifulSoup(html, "html.parser")
+        plain_text_summary = soup.get_text()
+
+        # 音声で読み上げる機能を追加
+        tts = gTTS(plain_text_summary, lang='ja')
+        tts.save("summary.mp3")
+
+        audio_file = open("summary.mp3", "rb")
+        audio_bytes = audio_file.read()
+
+        st.audio(audio_bytes, format="audio/mp3")
+
+        # 音声ファイルをダウンロード
         st.download_button(
-            label="要約をテキストファイルでダウンロード",
-            data=st.session_state["summary_output"],
-            file_name="summary.txt",
-            mime="text/plain"
+            label="要約をダウンロード（音声形式）",
+            data=audio_bytes,
+            file_name="summary.mp3",
+            mime="audio/mp3",
         )
 
 if __name__ == "__main__":
