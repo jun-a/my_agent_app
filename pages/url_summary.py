@@ -28,30 +28,11 @@ client = OpenAI(api_key=st.secrets["openai_api_key"])
 
 
 def fetch_web_content(url: str) -> str:
-    # リトライとタイムアウト設定を含むセッションを作成
-    session = requests.Session()
-    retries = Retry(
-        total=3,
-        backoff_factor=1,
-        status_forcelist=[500, 502, 503, 504]
-    )
-    session.mount("http://", HTTPAdapter(max_retries=retries))
-    session.mount("https://", HTTPAdapter(max_retries=retries))
+    response = requests.get(url)
+    response.raise_for_status()  # エラーチェック
 
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
-    }
-
-    response = session.get(url, headers=headers, timeout=30)
-    response.raise_for_status()
-
-    # HTMLを解析
-    soup = BeautifulSoup(response.content, 'html.parser')
-    
-    # body部分を抽出
-    body_content = soup.body
-
-    return body_content.get_text() if body_content else "Body content not found"
+    # HTMLを取得
+    return response.content.decode('utf-8')
 
 def chunk_text(text: str, max_chars: int = 3000):
     chunks = []
@@ -88,6 +69,22 @@ def summarize_long_text(text: str, prompt_file_path: str) -> str:
     combined_summary_text = "\n".join(partial_summaries)
     return summarize_text(combined_summary_text, prompt_file_path)
 
+# OpenAI APIを使用して本文を抽出する関数
+def extract_main_content(html: str, prompt_file_path: str) -> str:
+    with open(prompt_file_path, "r", encoding="utf-8") as f:
+        prompt_template = f.read()
+
+    prompt = prompt_template.format(html=html)
+
+    response = client.chat.completions.create(model=st.secrets["openai_model"],
+    messages=[
+        {"role": "system", "content": "You are a highly skilled web content extractor."},
+        {"role": "user", "content": prompt}
+    ],
+    temperature=0.5,
+    max_tokens=3000)
+    return response.choices[0].message.content
+
 def main():
     st.title("ウェブコンテンツから分析")
 
@@ -112,8 +109,11 @@ def main():
             st.error("ウェブコンテンツを取得できませんでした。")
             return
 
+        with st.spinner("本文を抽出しています..."):
+            main_content = extract_main_content(web_content, "prompts/extract_main_content.txt")
+
         with st.spinner("要約しています..."):
-            summary_output = summarize_long_text(web_content, "prompts/url_summary.txt")
+            summary_output = summarize_long_text(main_content, "prompts/url_summary.txt")
             st.session_state["summary_output"] = summary_output
 
     # 要約結果が存在する場合のみ表示
