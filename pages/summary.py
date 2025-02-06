@@ -5,6 +5,7 @@ import io
 import tempfile
 import os
 import yagmail
+from gtts import gTTS
 
 # ページ設定
 st.set_page_config(
@@ -127,6 +128,23 @@ if st.session_state.summary:
         data=transcript_data.getvalue(),
         file_name=transcript_file_name,
         mime="text/plain",
+    )
+
+    # 音声で読み上げる機能を追加
+    tts = gTTS(st.session_state.summary, lang='ja')
+    tts.save("summary.mp3")
+
+    audio_file = open("summary.mp3", "rb")
+    audio_bytes = audio_file.read()
+
+    st.audio(audio_bytes, format="audio/mp3")
+
+    # 音声ファイルをダウンロード
+    st.download_button(
+        label="要約をダウンロード（音声形式）",
+        data=audio_bytes,
+        file_name="summary.mp3",
+        mime="audio/mp3",
     )
 
     # メール送信（任意）
